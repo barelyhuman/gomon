@@ -1,21 +1,31 @@
 package main
 
 import (
+	"flag"
+	"fmt"
+	"log"
 	"os"
 	"os/exec"
 	"os/signal"
-	"fmt"
-	"log"
+	"strings"
 	"syscall"
+
 	"github.com/fsnotify/fsnotify"
 )
 
-func main()  {
-	if len(os.Args) < 2 {
-		log.Fatal("Please provide a file to watch")
+func main() {
+	watchPathsFlag := flag.String("w", ".", "`PATHS` to watch")
+
+	flag.Parse()
+
+	if flag.NArg() == 0 {
+		log.Fatal("Please provide a file to run on change")
+		os.Exit(1)
 	}
 
-	path := os.Args[1]
+	execPath := (flag.Args())[0]
+
+	paths := strings.Split(*watchPathsFlag, ",")
 
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
@@ -31,9 +41,9 @@ func main()  {
 	signal.Notify(signalChan, os.Interrupt)
 
 	var pgid int
-	pgid = runCmd(path, true)
+	pgid = runCmd(execPath, true)
 
-	go func () {
+	go func() {
 		<-signalChan
 		syscall.Kill(-pgid, 15)
 		done <- true
@@ -42,30 +52,33 @@ func main()  {
 	go func() {
 		for {
 			select {
-				case event, ok := <-watcher.Events:
-					if !ok {
-						return
-					}
-					
-					if event.Op&fsnotify.Write == fsnotify.Write {
-						syscall.Kill(-pgid, 15)
-						pgid = runCmd(path, false)
-					}
-				case err, ok := <-watcher.Errors:
-					if !ok {
-						return
-					}
-					fmt.Println("Error happened 😢", err)
+			case event, ok := <-watcher.Events:
+				if !ok {
+					return
+				}
+
+				if event.Op&fsnotify.Write == fsnotify.Write {
+					syscall.Kill(-pgid, 15)
+					pgid = runCmd(execPath, false)
+				}
+			case err, ok := <-watcher.Errors:
+				if !ok {
+					return
+				}
+				fmt.Println("Error happened 😢", err)
 			}
 		}
 	}()
 
-	err = watcher.Add(path)
-	if err != nil {
-		panic(err)
+	for _, path := range paths {
+		err = watcher.Add(path)
+
+		if err != nil {
+			panic(err)
+		}
 	}
 
-	<- done
+	<-done
 }
 
 func runCmd(path string, first bool) (pgid int) {
@@ -87,7 +100,7 @@ func runCmd(path string, first bool) (pgid int) {
 	return id
 }
 
-func formatPrint(msg string)  {
+func formatPrint(msg string) {
 	fmt.Println("")
 	fmt.Println("\x1b[36m*")
 	fmt.Println("  " + msg)
