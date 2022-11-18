@@ -7,6 +7,8 @@ import (
 	"os"
 	"os/exec"
 	"os/signal"
+	"path"
+	"path/filepath"
 	"strings"
 	"syscall"
 
@@ -15,6 +17,7 @@ import (
 
 func main() {
 	watchPathsFlag := flag.String("w", ".", "`PATHS` to watch")
+	recursePathFlag := flag.Bool("r", true, "watch the mentioned folders recursively")
 
 	flag.Parse()
 
@@ -70,7 +73,20 @@ func main() {
 		}
 	}()
 
-	for _, path := range paths {
+	var watchableDirs = paths[:]
+
+	if *recursePathFlag {
+		for _, walkPath := range paths {
+			filepath.Walk(walkPath, func(subPath string, info os.FileInfo, err error) error {
+				if info.IsDir() {
+					watchableDirs = append(watchableDirs, path.Join(walkPath, subPath))
+				}
+				return nil
+			})
+		}
+	}
+
+	for _, path := range watchableDirs {
 		err = watcher.Add(path)
 
 		if err != nil {
