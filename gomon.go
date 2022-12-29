@@ -16,7 +16,8 @@ import (
 )
 
 func main() {
-	watchPathsFlag := flag.String("w", ".", "`PATHS` to watch")
+	watchPathsFlag := flag.String("w", ".", "`PATHS` to watch, separated by commas(,)")
+	ignorePathsFlag := flag.String("exclude", "", "`PATHS` to exclude, separated by commas(,)")
 	recursePathFlag := flag.Bool("r", true, "watch the mentioned folders recursively")
 
 	flag.Parse()
@@ -29,6 +30,7 @@ func main() {
 	execPath := (flag.Args())[0]
 
 	paths := strings.Split(*watchPathsFlag, ",")
+	ignorePaths := strings.Split(*ignorePathsFlag, ",")
 
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
@@ -78,6 +80,11 @@ func main() {
 	if *recursePathFlag {
 		for _, walkPath := range paths {
 			filepath.Walk(walkPath, func(subPath string, info os.FileInfo, err error) error {
+
+				if pathInPathList(subPath, ignorePaths) {
+					return nil
+				}
+
 				if info.IsDir() {
 					watchableDirs = append(watchableDirs, path.Join(walkPath, subPath))
 				}
@@ -95,6 +102,15 @@ func main() {
 	}
 
 	<-done
+}
+
+func pathInPathList(toSearch string, list []string) bool {
+	for _, toIgnore := range list {
+		if strings.HasPrefix(toSearch, toIgnore) {
+			return true
+		}
+	}
+	return false
 }
 
 func runCmd(path string, first bool) (pgid int) {
