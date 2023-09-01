@@ -30,7 +30,7 @@ func main() {
 	execPath := (flag.Args())[0]
 
 	paths := strings.Split(*watchPathsFlag, ",")
-	ignorePaths := strings.Split(*ignorePathsFlag, ",")
+	ignorePaths := trimPaths(strings.Split(*ignorePathsFlag, ","))
 
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
@@ -106,7 +106,7 @@ func main() {
 
 func pathInPathList(toSearch string, list []string) bool {
 	for _, toIgnore := range list {
-		if strings.HasPrefix(toSearch, toIgnore) {
+		if strings.Contains(toSearch, toIgnore) || strings.HasPrefix(toSearch, toIgnore) {
 			return true
 		}
 	}
@@ -138,4 +138,12 @@ func formatPrint(msg string) {
 	fmt.Println("  " + msg)
 	fmt.Println("*\x1b[0m")
 	fmt.Println("")
+}
+
+func trimPaths(paths []string) []string {
+	trimmedIgnorePaths := []string{}
+	for _, i := range paths {
+		trimmedIgnorePaths = append(trimmedIgnorePaths, strings.TrimSpace(i))
+	}
+	return trimmedIgnorePaths
 }
