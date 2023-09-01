@@ -30,7 +30,13 @@ func main() {
 	execPath := (flag.Args())[0]
 
 	paths := strings.Split(*watchPathsFlag, ",")
+
+	// we append the glob paths with existing glob patterns because they won't
+	// match with most actual file names and in case a pattern wasn't supposed to be glob
+	// it doesn't get ignored accidentally since filepath.Glob will return empty if theres no files
+	// matching the glob
 	ignorePaths := trimPaths(strings.Split(*ignorePathsFlag, ","))
+	ignorePaths = append(ignorePaths, normalizeGlobs(ignorePaths)...)
 
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
@@ -52,27 +58,6 @@ func main() {
 		<-signalChan
 		syscall.Kill(-pgid, 15)
 		done <- true
-	}()
-
-	go func() {
-		for {
-			select {
-			case event, ok := <-watcher.Events:
-				if !ok {
-					return
-				}
-
-				if event.Op&fsnotify.Write == fsnotify.Write {
-					syscall.Kill(-pgid, 15)
-					pgid = runCmd(execPath, false)
-				}
-			case err, ok := <-watcher.Errors:
-				if !ok {
-					return
-				}
-				fmt.Println("Error happened 😢", err)
-			}
-		}
 	}()
 
 	var watchableDirs = paths[:]
@@ -100,6 +85,31 @@ func main() {
 			panic(err)
 		}
 	}
+
+	go func() {
+		for {
+			select {
+			case event, ok := <-watcher.Events:
+				if !ok {
+					return
+				}
+
+				if pathInPathList(event.Name, ignorePaths) {
+					return
+				}
+
+				if event.Op&fsnotify.Write == fsnotify.Write {
+					syscall.Kill(-pgid, 15)
+					pgid = runCmd(execPath, false)
+				}
+			case err, ok := <-watcher.Errors:
+				if !ok {
+					return
+				}
+				fmt.Println("Error happened 😢", err)
+			}
+		}
+	}()
 
 	<-done
 }
@@ -146,4 +156,18 @@ func trimPaths(paths []string) []string {
 		trimmedIgnorePaths = append(trimmedIgnorePaths, strings.TrimSpace(i))
 	}
 	return trimmedIgnorePaths
+}
+
+func normalizeGlobs(patterns []string) []string {
+	matchedPaths := []string{}
+	for _, pattern := range patterns {
+		matched, err := filepath.Glob(pattern)
+		if err != nil {
+			//digest
+			log.Println(pattern, ": invalid pattern")
+			continue
+		}
+		matchedPaths = append(matchedPaths, matched...)
+	}
+	return matchedPaths
 }
