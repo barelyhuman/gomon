@@ -40,9 +40,9 @@ func (w *Watcher) Start() {
 
 type WatcherModule func(*Watcher)
 
-func CreateNewWatcher(mods ...WatcherModule) (w *Watcher, err error) {
+func CreateNewWatcher(duration int, mods ...WatcherModule) (w *Watcher, err error) {
 	w = &Watcher{}
-	w.poller = poller.NewPollWatcher(60)
+	w.poller = poller.NewPollWatcher(duration)
 	for _, mod := range mods {
 		mod(w)
 	}

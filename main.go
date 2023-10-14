@@ -16,7 +16,7 @@ var version string
 func main() {
 	app := &cli.App{
 		Name:            "gomon",
-		Usage:           "command executor with a file watcher",
+		Usage:           "A go program executor with a file watcher",
 		CommandNotFound: cli.ShowCommandCompletions,
 		Action: func(c *cli.Context) error {
 			return cli.ShowAppHelp(c)
@@ -33,15 +33,21 @@ func main() {
 					return commands.Watch(c)
 				},
 				Flags: []cli.Flag{
-					&cli.StringSliceFlag{
-						Name:    "path",
+					&cli.IntFlag{
+						Name:    "poll",
 						Aliases: []string{"p"},
-						Usage:   "",
+						Value:   1000,
+						Usage:   "duration of `POLLING` time in milliseconds (eg: 2 seconds would be 2000)",
 					},
 					&cli.StringSliceFlag{
-						Name:    "ignore",
+						Name:    "include",
 						Aliases: []string{"i"},
-						Usage:   "",
+						Usage:   "`PATH`(s) to include, you can add multiple -i flags to add more paths ",
+					},
+					&cli.StringSliceFlag{
+						Name:    "exclude",
+						Aliases: []string{"e"},
+						Usage:   "`PATH`(s) to exclude, you can add multiple -e flags to add more paths ",
 					},
 				},
 			},

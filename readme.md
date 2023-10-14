@@ -1,47 +1,80 @@
-# Gomon
+# gomon
 
-> This is fork of [JulesGuesnon/Gomon](https://github.com/JulesGuesnon/Gomon)
+> This started as a fork of
+> [JulesGuesnon/Gomon](https://github.com/JulesGuesnon/Gomon)
 
-This package aim to reproduce the behavior of [nodemon](https://github.com/remy/nodemon) for go.
-I made this for training purpose so it's probably not really usable.
+### Installation
 
-## Installation guide
+**pre-requisites**
 
-Install the package
+- `curl` if using the [Goblin](#goblin) method
+- [go](https://go.dev), assuming this already is installed since you are using a
+  go development tool
 
-```sh
-go install github.com/barelyhuman/gomon
-```
+You can install it using one of the following ways.
 
-You can also run this directly using
+#### Goblin
 
-```sh
-go get -u github.com/barelyhuman/gomon
-go run github.com/barelyhuman/gomon <flags and options>
-```
-
-There you go !
-
-## How to use it ?
-
-For now you can only watch a file, nothing else
+- Request a install script from [goblin.run](http://goblin.run) and follow the
+  instructions
 
 ```sh
-gomon path/to/my/file.go
-# or
-gomon -w "./src,./dist" path/to/my/file.go
+$ curl -sf http://goblin.run/github.com/barelyhuman/gomon@latest | sh
 ```
 
-## Possible issue
+#### Go
 
-If you face this issue:
+**Windows**
+
+- Make sure that the `GOPATH` variable is setup and already accessible to be
+  able to use `go install`
+
+**Linux/Unix**
+
+- This depends on the `$HOME/go/bin` directory to exist, so make sure that the
+  directory exists on Linux/Unix
 
 ```
-gomon: command not found
+$ go install github.com/barelyhuman/gomon
 ```
 
-You may need to add `GOPATH` to your `PATH` (you may need to set your `GOPATH`)
+### Examples
+
+A simple project with `nodejs` being used to bundle your frontend assets might
+look like so
 
 ```sh
-export PATH=$PATH:$GOPATH/bin
+$ gomon -i "." -e "./node_modules/*" .
+#        ^ include everything from this folder
+#               ^ exclude everything from `node_modules` 
+#                                    ^ run `go run` on the root of this directory
+```
+
+A nested project where the actual binary is somewhere else might look like so
+
+```sh
+$ gomon -i "./src" -i "./assets" -e "./node_modules/*" server/bin
+#        ^ include everything from this folder to watch
+#                   ^ include everything from the assets folder to watch
+#                                 ^ exclude everything from the `node_modules` directory
+#                                                      ^ run `go run` on the files in `server/bin` directory
+```
+
+### CLI
+
+```
+NAME:
+   gomon - A go program executor with a file watcher
+
+USAGE:
+   gomon [global options] command [command options] [arguments...]
+
+
+COMMANDS:
+   watch, w  watch mode
+   help, h   Shows a list of commands or help for one command
+
+GLOBAL OPTIONS:
+   --help, -h     show help
+   --version, -v  print the version
 ```

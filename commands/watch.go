@@ -14,20 +14,21 @@ import (
 )
 
 func Watch(c *cli.Context) (err error) {
-	path := c.StringSlice("path")
-	toIgnore := c.StringSlice("ignore")
+	pollingDuration := c.Int("poll")
+	pathsToInclude := c.StringSlice("include")
+	pathsToExclude := c.StringSlice("exclude")
 
 	gOptions := []pkg.WatcherModule{}
 
-	if len(path) > 0 {
-		gOptions = append(gOptions, pkg.WatcherWithPath(path...))
+	if len(pathsToInclude) > 0 {
+		gOptions = append(gOptions, pkg.WatcherWithPath(pathsToInclude...))
 	}
 
-	if len(toIgnore) > 0 {
-		gOptions = append(gOptions, pkg.WatcherWithIgnoredPath(toIgnore...))
+	if len(pathsToExclude) > 0 {
+		gOptions = append(gOptions, pkg.WatcherWithIgnoredPath(pathsToExclude...))
 	}
 
-	watcher, err := pkg.CreateNewWatcher(gOptions...)
+	watcher, err := pkg.CreateNewWatcher(pollingDuration, gOptions...)
 
 	if err != nil {
 		return err
